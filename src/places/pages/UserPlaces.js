@@ -3,6 +3,7 @@ import { useParams } from "react-router-dom/cjs/react-router-dom.min";
 
 import PlaceList from "../components/PlaceList";
 
+// place holder for frontend testing since we have no backend yet.
 const DUMMY_PLACES = [
   {
     id: "p1",
