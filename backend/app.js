@@ -1,9 +1,13 @@
 const express = require("express");
 const bodyParser = require("body-parser");
+const mongoose = require("mongoose");
 
 const placesRoutes = require("./routes/places-routes.js");
 const usersRoutes = require("./routes/users-routes.js");
 const HttpError = require("./models/http-error.js");
+
+const PASSWORD = "w6JAWQu9Tumm0Uff";
+const url = `mongodb+srv://davidlima17:${PASSWORD}@cluster0.dxf7aoh.mongodb.net/places?retryWrites=true&w=majority`;
 const app = express();
 const port = 5000;
 
@@ -25,4 +29,13 @@ app.use((error, req, res, next) => {
   res.json({ message: error.message || "An unkown error occurred!" });
 });
 
-app.listen(port, () => console.log(`Example app listening on port ${port}!`));
+mongoose
+  .connect(url)
+  .then(() => {
+    app.listen(port, () =>
+      console.log(`Example app listening on port ${port}!`)
+    );
+  })
+  .catch((err) => {
+    console.log(err);
+  });

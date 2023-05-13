@@ -1,8 +1,9 @@
-const { v4: uuidv4 } = require("uuid");
+// const { v4: uuidv4 } = require("uuid");
 
 const { validationResult } = require("express-validator");
 const HttpError = require("../models/http-error");
 const getCoordsForAddress = require("../util/location");
+const Place = require("../models/place");
 
 let DUMMY_PLACES = [
   {
@@ -41,29 +42,52 @@ let DUMMY_PLACES = [
 ];
 
 // http GET 'api/places/:pid' gets a place by id
-const getPlaceById = (req, res, next) => {
+const getPlaceById = async (req, res, next) => {
   const placeId = req.params.pid;
-  const place = DUMMY_PLACES.find((p) => {
-    return p.id === placeId;
-  });
-  if (!place) {
-    throw new HttpError("Could not find a place with the provided id", 404);
+
+  let place;
+  try {
+    place = await Place.findById(placeId);
+  } catch (error) {
+    const err = new HttpError(
+      "something went wrong, could not retrieve place.",
+      500
+    );
+    return next(err);
   }
-  res.json({ place });
+  if (!place) {
+    const error = new HttpError(
+      "Could not find a place with the provided id",
+      404
+    );
+    return next(error);
+  }
+  res.json({ place: place.toObject({ getters: true }) });
 };
 
 // http GET 'api/places/user/:uid' gets a user's place
-const getPlacesByUserId = (req, res, next) => {
+const getPlacesByUserId = async (req, res, next) => {
   const userId = req.params.uid;
-  const places = DUMMY_PLACES.filter((u) => {
-    return u.creator === userId;
-  });
+
+  let places;
+  try {
+    places = await Place.find({ creator: userId });
+  } catch (error) {
+    const err = new HttpError(
+      "Something went wrong, could not find user places.",
+      500
+    );
+    return next(err);
+  }
+
   if (!places || places.length === 0) {
     return next(
       new HttpError("Could not find a place with the provided id", 404)
     );
   }
-  res.json({ places });
+  res.json({
+    places: places.map((place) => place.toObject({ getters: true })),
+  });
 };
 
 // http POST 'api/places/' creates a new post
@@ -71,7 +95,9 @@ const createPlace = async (req, res, next) => {
   const errors = validationResult(req);
   if (!errors.isEmpty()) {
     console.log(errors);
-     return next(new HttpError("Invalid inputs passed. please check your data", 422));
+    return next(
+      new HttpError("Invalid inputs passed. please check your data", 422)
+    );
   }
 
   const { title, description, address, creator } = req.body;
@@ -82,17 +108,24 @@ const createPlace = async (req, res, next) => {
     return next(error);
   }
 
-  const createdPlace = {
-    id: uuidv4(),
+  const createdPlace = new Place({
     title,
     description,
-    location: coordinates,
     address,
+    location: coordinates,
+    image: "./somepath.png",
     creator,
-  };
+  });
 
-  DUMMY_PLACES.push(createdPlace);
-  //   DUMMY_PLACES.unshift(createPlace); if we wanted to create it without appending to the array
+  try {
+    await createdPlace.save();
+  } catch (err) {
+    console.log(err);
+    const error = new HttpError("Creating place failed, please try again", 500);
+    return next(error);
+  }
+  // DUMMY_PLACES.push(createdPlace);
+  // DUMMY_PLACES.unshift(createPlace); if we wanted to create it without appending to the array
   res.status(201).json({ place: createdPlace });
 };
 
