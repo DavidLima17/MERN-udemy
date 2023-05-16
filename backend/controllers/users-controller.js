@@ -29,7 +29,10 @@ const login = async (req, res, next) => {
   if (!existingUser || existingUser.password !== password) {
     return next(new HttpError("Could not log you in.", 401));
   }
-  res.json({ message: "logged in." });
+  res.json({
+    message: "logged in.",
+    user: existingUser.toObject({ getters: true }),
+  });
 };
 
 const register = async (req, res, next) => {
