@@ -1,7 +1,8 @@
 const { validationResult } = require("express-validator");
-
+const bcrypt = require("bcryptjs");
 const HttpError = require("../models/http-error");
 const User = require("../models/user");
+const jwt = require("jsonwebtoken");
 
 const getUsers = async (req, res, next) => {
   let users;
@@ -26,12 +27,50 @@ const login = async (req, res, next) => {
     return next(new HttpError("Signup failed, please try again later.", 500));
   }
 
-  if (!existingUser || existingUser.password !== password) {
+  if (!existingUser) {
     return next(new HttpError("Could not log you in.", 401));
   }
+
+  let isValidPassword = false;
+
+  try {
+    isValidPassword = await bcrypt.compare(password, existingUser.password);
+  } catch (error) {
+    return next(
+      new HttpError(
+        "Could not log you in, please check your credentials and try again.",
+        500
+      )
+    );
+  }
+
+  if (!isValidPassword) {
+    return next(new HttpError("Could not log you in.", 401));
+  }
+
+  let token;
+  try {
+    token = jwt.sign(
+      {
+        userId: existingUser.id,
+        email: existingUser.email,
+      },
+      "supersecret_dont_share",
+      { expiresIn: "1h" }
+    );
+  } catch (error) {
+    return next(
+      new HttpError(
+        "Could not complete registration, please try again later.",
+        500
+      )
+    );
+  }
+
   res.json({
-    message: "logged in.",
-    user: existingUser.toObject({ getters: true }),
+    userId: existingUser.id,
+    email: existingUser.email,
+    token: token,
   });
 };
 
@@ -59,10 +98,18 @@ const register = async (req, res, next) => {
       new HttpError("Email already exists, please login instead.", 422)
     );
   }
+
+  let hashedPassword;
+  try {
+    hashedPassword = await bcrypt.hash(password, 12);
+  } catch (error) {
+    return next(new HttpError("Could not create user, please try again.", 500));
+  }
+
   const registeredUser = new User({
     name,
     email,
-    password,
+    password: hashedPassword,
     image: req.file.path,
     places: [],
   });
@@ -78,7 +125,32 @@ const register = async (req, res, next) => {
       )
     );
   }
-  res.status(201).json({ user: registeredUser.toObject({ getters: true }) });
+
+  let token;
+
+  try {
+    token = jwt.sign(
+      {
+        userId: registeredUser.id,
+        email: registeredUser.email,
+      },
+      "supersecret_dont_share",
+      { expiresIn: "1h" }
+    );
+  } catch (error) {
+    return next(
+      new HttpError(
+        "Could not complete registration, please try again later.",
+        500
+      )
+    );
+  }
+
+  res.status(201).json({
+    userId: registeredUser.discriminator,
+    email: registeredUser.email,
+    token: token,
+  });
 };
 
 exports.getUsers = getUsers;
