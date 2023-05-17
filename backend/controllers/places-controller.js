@@ -1,3 +1,5 @@
+const fs = require("fs");
+
 const { validationResult } = require("express-validator");
 const { default: mongoose } = require("mongoose");
 
@@ -36,7 +38,7 @@ const getPlacesByUserId = async (req, res, next) => {
 
   let userWithPlaces;
   try {
-    userWithPlaces = await User.findById(userId).populate('places');
+    userWithPlaces = await User.findById(userId).populate("places");
   } catch (error) {
     const err = new HttpError(
       "Something went wrong, could not find user places.",
@@ -51,7 +53,9 @@ const getPlacesByUserId = async (req, res, next) => {
     );
   }
   res.json({
-    places: userWithPlaces.places.map((place) => place.toObject({ getters: true })),
+    places: userWithPlaces.places.map((place) =>
+      place.toObject({ getters: true })
+    ),
   });
 };
 
@@ -78,7 +82,7 @@ const createPlace = async (req, res, next) => {
     description,
     address,
     location: coordinates,
-    image: "./somepath.png",
+    image: req.file.path,
     creator,
   });
 
@@ -163,6 +167,8 @@ const deletePlace = async (req, res, next) => {
     return next(new HttpError("Could not find place for this id.", 404));
   }
 
+  const imagePath = place.image;
+
   try {
     const session = await mongoose.startSession();
     session.startTransaction();
@@ -170,13 +176,16 @@ const deletePlace = async (req, res, next) => {
     place.creator.places.pull(place);
     await place.creator.save({ session: session });
     await session.commitTransaction();
-
   } catch (error) {
     console.log(error);
     return next(
       new HttpError("Something went wrong could not delete place.", 500)
     );
   }
+
+  fs.unlink(imagePath, (err) => {
+    console.log(err);
+  });
 
   res.status(200).json({ message: "Place Deleted successfully." });
 };
