@@ -55,7 +55,7 @@ const login = async (req, res, next) => {
         userId: existingUser.id,
         email: existingUser.email,
       },
-      "supersecret_dont_share",
+      process.env.JWT_KEY,
       { expiresIn: "1h" }
     );
   } catch (error) {
@@ -134,7 +134,7 @@ const register = async (req, res, next) => {
         userId: registeredUser.id,
         email: registeredUser.email,
       },
-      "supersecret_dont_share",
+      process.env.JWT_KEY,
       { expiresIn: "1h" }
     );
   } catch (error) {
@@ -147,7 +147,7 @@ const register = async (req, res, next) => {
   }
 
   res.status(201).json({
-    userId: registeredUser.discriminator,
+    userId: registeredUser.id,
     email: registeredUser.email,
     token: token,
   });

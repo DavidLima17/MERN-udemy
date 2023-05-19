@@ -9,8 +9,7 @@ const placesRoutes = require("./routes/places-routes.js");
 const usersRoutes = require("./routes/users-routes.js");
 const HttpError = require("./models/http-error.js");
 
-const PASSWORD = "w6JAWQu9Tumm0Uff";
-const url = `mongodb+srv://davidlima17:${PASSWORD}@cluster0.dxf7aoh.mongodb.net/places?retryWrites=true&w=majority`;
+const url = `mongodb+srv://${process.env.DB_USER}:${process.env.DB_PASSWORD}@cluster0.dxf7aoh.mongodb.net/${process.env.DB_NAME}?retryWrites=true&w=majority`;
 const app = express();
 const port = 5000;
 
