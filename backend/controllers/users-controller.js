@@ -45,7 +45,7 @@ const login = async (req, res, next) => {
   }
 
   if (!isValidPassword) {
-    return next(new HttpError("Could not log you in.", 401));
+    return next(new HttpError("Could not log you in.", 403));
   }
 
   let token;

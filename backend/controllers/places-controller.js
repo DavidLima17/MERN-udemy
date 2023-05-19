@@ -69,7 +69,7 @@ const createPlace = async (req, res, next) => {
     );
   }
 
-  const { title, description, address, creator } = req.body;
+  const { title, description, address } = req.body;
   let coordinates;
   try {
     coordinates = await getCoordsForAddress(address);
@@ -83,12 +83,12 @@ const createPlace = async (req, res, next) => {
     address,
     location: coordinates,
     image: req.file.path,
-    creator,
+    creator: req.userData.userId,
   });
 
   let user;
   try {
-    user = await User.findById(creator);
+    user = await User.findById(req.userData.userId);
   } catch (error) {
     console.log(error);
     return next(new HttpError("could not add uer to place.", 500));
@@ -136,6 +136,12 @@ const updatePlace = async (req, res, next) => {
     );
   }
 
+  if (place.creator.toString() !== req.userData.userId) {
+    return next(
+      new HttpError("You're not Authorized to edit or delete this place.", 401)
+    );
+  }
+
   place.title = title;
   place.description = description;
 
@@ -150,6 +156,7 @@ const updatePlace = async (req, res, next) => {
   res.status(200).json({ place: place.toObject({ getters: true }) });
 };
 
+// http DELETE 'api/places/:pid' deletes an existing place
 const deletePlace = async (req, res, next) => {
   const placeId = req.params.pid;
 
@@ -167,6 +174,11 @@ const deletePlace = async (req, res, next) => {
     return next(new HttpError("Could not find place for this id.", 404));
   }
 
+  if (place.creator.id !== req.userData.userId) {
+    return next(
+      new HttpError("You're not Authorized to edit or delete this place.", 401)
+    );
+  }
   const imagePath = place.image;
 
   try {
