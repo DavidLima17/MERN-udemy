@@ -1,9 +1,0 @@
-{
-  "env": {
-    "DB_USER": "davidlima17",
-    "DB_PASSWORD": "w6JAWQu9Tumm0Uff",
-    "DB_NAME": "places",
-    "GOOGLE_MAPS_API_KEY": "AIzaSyBRQUHPelo3xrpr3u0ME1RlViLTKmgZYcU",
-    "JWT_KEY": "supersecret_dont_share"
-  }
-}
